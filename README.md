@@ -1,5 +1,21 @@
 # Revisiting Deep Models for Image Super Resolution
 
+## Environment Setup
+
+Create a new conda environment and install PyTorch:
+
+```shell
+conda create -n revisit_sr python=3.8
+source activate revisit_sr
+conda install pytorch torchvision cudatoolkit=11.1 -c pytorch -c nvidia
+```
+
+Install the required packages:
+
+```shell
+pip install -r requirements.txt
+```
+
 ## Multi-processing Distributed Data Parallel Training
 
 ### Single Node
