@@ -25,42 +25,14 @@ class MeanShift(nn.Conv2d):
             p.requires_grad = False
 
 
-class BasicBlock(nn.Sequential):
-    def __init__(
-            self, conv, in_channels, out_channels, kernel_size, stride=1, bias=False,
-            bn=True, act=nn.ReLU(True)):
-
-        m = [conv(in_channels, out_channels, kernel_size, bias=bias)]
-        if bn:
-            m.append(nn.BatchNorm2d(out_channels))
-        if act is not None:
-            m.append(act)
-
-        super(BasicBlock, self).__init__(*m)
-
-
-class ResBlock(nn.Module):
-    def __init__(
-            self, conv, n_feats, kernel_size,
-            bias=True, bn=False, act=nn.ReLU(True), res_scale=1):
-
-        super(ResBlock, self).__init__()
-        m = []
-        for i in range(2):
-            m.append(conv(n_feats, n_feats, kernel_size, bias=bias))
-            if bn:
-                m.append(nn.BatchNorm2d(n_feats))
-            if i == 0:
-                m.append(act)
-
-        self.body = nn.Sequential(*m)
-        self.res_scale = res_scale
+class Affine2d(nn.Module):
+    def __init__(self, planes) -> None:
+        super().__init__()
+        self.weight = Parameter(torch.ones(1, planes, 1, 1))
+        self.bias = Parameter(torch.zeros(1, planes, 1, 1))
 
     def forward(self, x):
-        res = self.body(x).mul(self.res_scale)
-        res += x
-
-        return res
+        return x * self.weight + self.bias
 
 
 class Upsampler(nn.Sequential):
@@ -72,7 +44,7 @@ class Upsampler(nn.Sequential):
                 m.append(conv(n_feats, 4 * n_feats, 3, bias))
                 m.append(nn.PixelShuffle(2))
                 if bn:
-                    m.append(nn.BatchNorm2d(n_feats))
+                    m.append(Affine2d(n_feats))
                 if act == 'relu':
                     m.append(nn.ReLU(True))
                 elif act == 'prelu':
@@ -82,7 +54,7 @@ class Upsampler(nn.Sequential):
             m.append(conv(n_feats, 9 * n_feats, 3, bias))
             m.append(nn.PixelShuffle(3))
             if bn:
-                m.append(nn.BatchNorm2d(n_feats))
+                m.append(Affine2d(n_feats))
             if act == 'relu':
                 m.append(nn.ReLU(True))
             elif act == 'prelu':
@@ -108,17 +80,7 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False)
 
 
-class Affine2d(nn.Module):
-    def __init__(self, planes) -> None:
-        super().__init__()
-        self.weight = Parameter(torch.ones(1, planes, 1, 1))
-        self.bias = Parameter(torch.zeros(1, planes, 1, 1))
-
-    def forward(self, x):
-        return x * self.weight + self.bias
-
-
-class PreActBasicBlock(nn.Module):
+class PreActBase(nn.Module):
     def __init__(self, planes: int, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
         super().__init__()
@@ -149,7 +111,7 @@ class PreActBasicBlock(nn.Module):
             res = self._forward_res(x)
             return identity + res
 
-        # This block is skipped durint training
+        # This block is skipped during training
         for param in self.body.parameters():
             param.requires_grad = False
         return identity
@@ -160,6 +122,12 @@ class PreActBasicBlock(nn.Module):
             res *= self.prob
 
         return identity + res
+
+
+class PreActBasicBlock(PreActBase):
+    def __init__(self, planes: int, stochastic_depth: bool = False,
+                 prob: float = 1.0, multFlag: bool = True) -> None:
+        super().__init__(planes, stochastic_depth, prob, multFlag)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
@@ -173,51 +141,14 @@ class PreActBasicBlock(nn.Module):
         return x
 
 
-class PreActBottleneck(nn.Module):
+class PreActBottleneck(PreActBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
-        super().__init__()
-        self.aff1 = Affine2d(planes)
+        super().__init__(planes, stochastic_depth, prob, multFlag)
         self.conv1 = conv1x1(planes, planes)
-
-        self.aff2 = Affine2d(planes)
-        self.conv2 = conv3x3(planes, planes)
 
         self.aff3 = Affine2d(planes)
         self.conv3 = conv1x1(planes, planes)
-
-        self.relu = nn.ReLU(inplace=True)
-
-        self.sd = stochastic_depth
-        if stochastic_depth:
-            self.prob = prob
-            self.multFlag = multFlag
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        identity = x.clone()
-        if self.training:
-            return self._forward_train(x, identity)
-
-        return self._forward_test(x, identity)
-
-    def _forward_train(self, x, identity):
-        if not self.sd or torch.rand(1) < self.prob:
-            for param in self.parameters():
-                param.requires_grad = True
-            res = self._forward_res(x)
-            return identity + res
-
-        # This block is skipped durint training
-        for param in self.body.parameters():
-            param.requires_grad = False
-        return identity
-
-    def _forward_test(self, x, identity):
-        res = self._forward_res(x)
-        if self.multFlag:
-            res *= self.prob
-
-        return identity + res
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
