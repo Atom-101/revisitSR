@@ -4,8 +4,8 @@ from model import common
 
 import torch.nn as nn
 
-def make_model(args, parent=False):
-    return RCAN(args)
+def make_model(cfg, parent=False):
+    return RCAN(cfg)
 
 ## Channel Attention (CA) Layer
 class CALayer(nn.Module):
@@ -67,27 +67,27 @@ class ResidualGroup(nn.Module):
 
 ## Residual Channel Attention Network (RCAN)
 class RCAN(nn.Module):
-    def __init__(self, args, conv=common.default_conv):
+    def __init__(self, cfg, conv=common.default_conv):
         super(RCAN, self).__init__()
         
-        n_resgroups = args.n_resgroups
-        n_resblocks = args.n_resblocks
-        n_feats = args.n_feats
+        n_resgroups = cfg.MODEL.N_RESGROUPS
+        n_resblocks = cfg.MODEL.N_RESBLOCKS
+        n_feats = cfg.MODEL.N_FEATS
         kernel_size = 3
-        reduction = args.reduction 
-        scale = args.scale[0]
+        reduction = cfg.MODEL.REDUCTION
+        scale = cfg.DATASET.DATA_SCALE[0]
         act = nn.ReLU(True)
         
         # RGB mean for DIV2K
-        self.sub_mean = common.MeanShift(args.rgb_range)
+        self.sub_mean = common.MeanShift(cfg.DATASET.RGB_RANGE)
         
         # define head module
-        modules_head = [conv(args.n_colors, n_feats, kernel_size)]
+        modules_head = [conv(cfg.DATASET.CHANNELS, n_feats, kernel_size)]
 
         # define body module
         modules_body = [
             ResidualGroup(
-                conv, n_feats, kernel_size, reduction, act=act, res_scale=args.res_scale, n_resblocks=n_resblocks) \
+                conv, n_feats, kernel_size, reduction, act=act, res_scale=cfg.MODEL.RES_SCALE, n_resblocks=n_resblocks) \
             for _ in range(n_resgroups)]
 
         modules_body.append(conv(n_feats, n_feats, kernel_size))
@@ -95,9 +95,9 @@ class RCAN(nn.Module):
         # define tail module
         modules_tail = [
             common.Upsampler(conv, scale, n_feats, act=False),
-            conv(n_feats, args.n_colors, kernel_size)]
+            conv(n_feats, cfg.DATASET.CHANNELS, kernel_size)]
 
-        self.add_mean = common.MeanShift(args.rgb_range, sign=1)
+        self.add_mean = common.MeanShift(cfg.DATASET.RGB_RANGE, sign=1)
 
         self.head = nn.Sequential(*modules_head)
         self.body = nn.Sequential(*modules_body)

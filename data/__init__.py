@@ -13,39 +13,39 @@ class MyConcatDataset(ConcatDataset):
             if hasattr(d, 'set_scale'): d.set_scale(idx_scale)
 
 class Data:
-    def __init__(self, args, cfg):
+    def __init__(self, cfg):
         self.loader_train = None
-        if not args.test_only:
+        if not cfg.SOLVER.TEST_ONLY:
             datasets = []
-            for d in args.data_train:
+            for d in cfg.DATASET.DATA_TRAIN:
                 module_name = d if d.find('DIV2K-Q') < 0 else 'DIV2KJPEG'
                 m = import_module('data.' + module_name.lower())
-                datasets.append(getattr(m, module_name)(args, cfg, name=d))
+                datasets.append(getattr(m, module_name)(cfg, name=d))
 
             self.loader_train = dataloader.DataLoader(
                 MyConcatDataset(datasets),
-                batch_size=args.batch_size,
+                batch_size=cfg.SOLVER.SAMPLES_PER_BATCH,
                 shuffle=True,
-                pin_memory=not args.cpu,
-                num_workers=args.n_threads,
+                pin_memory=bool(cfg.SYSTEM.NUM_GPU),
+                num_workers=cfg.SYSTEM.NUM_WORKERS,
             )
 
         self.loader_test = []
-        for d in args.data_test:
+        for d in cfg.DATASET.DATA_TEST:
             if d in ['Set5', 'Set14', 'B100', 'Urban100']:
                 m = import_module('data.benchmark')
-                testset = getattr(m, 'Benchmark')(args, train=False, name=d)
+                testset = getattr(m, 'Benchmark')(cfg, train=False, name=d)
             else:
                 module_name = d if d.find('DIV2K-Q') < 0 else 'DIV2KJPEG'
                 m = import_module('data.' + module_name.lower())
-                testset = getattr(m, module_name)(args, cfg, train=False, name=d)
+                testset = getattr(m, module_name)(cfg, train=False, name=d)
 
             self.loader_test.append(
                 dataloader.DataLoader(
                     testset,
                     batch_size=1,
                     shuffle=False,
-                    pin_memory=not args.cpu,
-                    num_workers=args.n_threads,
+                    pin_memory=bool(cfg.SYSTEM.NUM_GPU),
+                    num_workers=cfg.SYSTEM.NUM_WORKERS,
                 )
             )

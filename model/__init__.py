@@ -7,26 +7,26 @@ import torch.utils.model_zoo
 
 
 class Model(nn.Module):
-    def __init__(self, args, ckp=None):
+    def __init__(self, cfg, ckp=None):
         super().__init__()
 
-        self.scale = args.scale
+        self.scale = cfg.DATASET.DATA_SCALE
         self.idx_scale = 0
-        self.input_large = (args.model == 'VDSR')
-        self.self_ensemble = args.self_ensemble
-        self.chop = args.chop
-        self.cpu = args.cpu
-        self.save_models = args.save_models
+        self.input_large = (cfg.MODEL.NAME == 'VDSR')
+        self.self_ensemble = cfg.MODEL.SELF_ENSEMBLE
+        self.chop = cfg.DATASET.CHOP
+        self.cpu = bool(cfg.SYSTEM.NUM_GPU)
+        self.save_models = cfg.LOG.SAVE_MODELS
 
-        module = import_module('model.' + args.model.lower())
-        self.model = module.make_model(args)
+        module = import_module('model.' + cfg.MODEL.NAME.lower())
+        self.model = module.make_model(cfg) #@TODO
 
         if ckp is not None:
             self.load(
                 ckp.get_path('model'),
-                pre_train=args.pre_train,
-                resume=args.resume,
-                cpu=args.cpu
+                pre_train=cfg.MODEL.PRE_TRAIN,
+                resume=not cfg.SOLVER.ITERATION_RESTART,
+                cpu=bool(cfg.SYSTEM.NUM_GPU)
             )
             print(self.model, file=ckp.log_file)
 

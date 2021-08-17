@@ -11,38 +11,39 @@ import torch
 import torch.utils.data as data
 
 class SRData(data.Dataset):
-    def __init__(self, args, cfg, name='', train=True, benchmark=False):
-        self.args = args
+    def __init__(self, cfg, name='', train=True, benchmark=False):
+        # self.args = args
+        self.cfg = cfg
         self.name = name
         self.train = train
         self.split = 'train' if train else 'test'
         self.do_eval = True
         self.benchmark = benchmark
-        self.input_large = (args.model == 'VDSR')
-        self.scale = args.scale
+        self.input_large = (cfg.MODEL.NAME == 'VDSR')
+        self.scale = cfg.DATASET.DATA_SCALE
         self.idx_scale = 0
         
-        self._set_filesystem(args.dir_data)
-        if args.ext.find('img') < 0:
+        self._set_filesystem(cfg.DATASET.DATA_DIR)
+        if cfg.DATASET.DATA_EXT.find('img') < 0:
             path_bin = os.path.join(self.apath, 'bin')
             os.makedirs(path_bin, exist_ok=True)
 
         list_hr, list_lr = self._scan()
-        if args.ext.find('bin') >= 0:
+        if cfg.DATASET.DATA_EXT.find('bin') >= 0:
             # Binary files are stored in 'bin' folder
             # If the binary file exists, load it. If not, make it.
             list_hr, list_lr = self._scan()
             self.images_hr = self._check_and_load(
-                args.ext, list_hr, self._name_hrbin()
+                cfg.DATASET.DATA_EXT, list_hr, self._name_hrbin()
             )
             self.images_lr = [
-                self._check_and_load(args.ext, l, self._name_lrbin(s)) \
+                self._check_and_load(cfg.DATASET.DATA_EXT, l, self._name_lrbin(s)) \
                 for s, l in zip(self.scale, list_lr)
             ]
         else:
-            if args.ext.find('img') >= 0 or benchmark:
+            if cfg.DATASET.DATA_EXT.find('img') >= 0 or benchmark:
                 self.images_hr, self.images_lr = list_hr, list_lr
-            elif args.ext.find('sep') >= 0:
+            elif cfg.DATASET.DATA_EXT.find('sep') >= 0:
                 os.makedirs(
                     self.dir_hr.replace(self.apath, path_bin),
                     exist_ok=True
@@ -62,7 +63,7 @@ class SRData(data.Dataset):
                     b = b.replace(self.ext[0], '.pt')
                     self.images_hr.append(b)
                     self._check_and_load(
-                        args.ext, [h], b, verbose=True, load=False
+                        cfg.DATASET.DATA_EXT, [h], b, verbose=True, load=False
                     )
 
                 for i, ll in enumerate(list_lr):
@@ -71,13 +72,13 @@ class SRData(data.Dataset):
                         b = b.replace(self.ext[1], '.pt')
                         self.images_lr[i].append(b)
                         self._check_and_load(
-                            args.ext, [l], b,  verbose=True, load=False
+                            cfg.DATASET.DATA_EXT, [l], b,  verbose=True, load=False
                         )
 
         if train:
             self.n_train_samples = cfg.SOLVER.ITERATION_TOTAL * cfg.SOLVER.SAMPLES_PER_BATCH
-            n_patches = args.batch_size * args.test_every
-            n_images = len(args.data_train) * len(self.images_hr)
+            n_patches = cfg.SOLVER.SAMPLES_PER_BATCH * cfg.SOLVER.TEST_EVERY
+            n_images = len(cfg.DATASET.DATA_TRAIN) * len(self.images_hr)
             if n_images == 0:
                 self.repeat = 0
             else:
@@ -154,8 +155,8 @@ class SRData(data.Dataset):
     def __getitem__(self, idx):
         lr, hr, filename = self._load_file(idx)
         pair = self.get_patch(lr, hr)
-        pair = common.set_channel(*pair, n_channels=self.args.n_colors)
-        pair_t = common.np2Tensor(*pair, rgb_range=self.args.rgb_range)
+        pair = common.set_channel(*pair, n_channels=self.cfg.DATASET.CHANNELS)
+        pair_t = common.np2Tensor(*pair, rgb_range=self.cfg.DATASET.RGB_RANGE)
 
         return pair_t[0], pair_t[1], filename
 
@@ -177,16 +178,16 @@ class SRData(data.Dataset):
         f_hr = self.images_hr[idx]
         f_lr = self.images_lr[self.idx_scale][idx]
 
-        if self.args.ext.find('bin') >= 0:
+        if self.cfg.DATASET.DATA_EXT.find('bin') >= 0:
             filename = f_hr['name']
             hr = f_hr['image']
             lr = f_lr['image']
         else:
             filename, _ = os.path.splitext(os.path.basename(f_hr))
-            if self.args.ext == 'img' or self.benchmark:
+            if self.cfg.DATASET.DATA_EXT == 'img' or self.benchmark:
                 hr = imageio.imread(f_hr)
                 lr = imageio.imread(f_lr)
-            elif self.args.ext.find('sep') >= 0:
+            elif self.cfg.DATASET.DATA_EXT.find('sep') >= 0:
                 # For each pt file, use 'image' to load it
                 # with open(f_hr, 'rb') as _f: hr = pickle.load(_f)[0]['image']
                 # with open(f_lr, 'rb') as _f: lr = pickle.load(_f)[0]['image']
@@ -201,12 +202,12 @@ class SRData(data.Dataset):
         if self.train:
             lr, hr = common.get_patch(
                 lr, hr,
-                patch_size=self.args.patch_size,
+                patch_size=self.cfg.DATASET.OUT_PATCH_SIZE,
                 scale=scale,
                 multi=(len(self.scale) > 1),
                 input_large=self.input_large
             )
-            if not self.args.no_augment: lr, hr = common.augment(lr, hr)
+            if self.cfg.AUGMENT.ENABLED: lr, hr = common.augment(lr, hr)
         else:
             ih, iw = lr.shape[:2]
             hr = hr[0:ih * scale, 0:iw * scale]

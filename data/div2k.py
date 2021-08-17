@@ -2,19 +2,19 @@ import os
 from data import srdata
 
 class DIV2K(srdata.SRData):
-    def __init__(self, args, name='DIV2K', train=True, benchmark=False):
-        data_range = [r.split('-') for r in args.data_range.split('/')]
+    def __init__(self, cfg, name='DIV2K', train=True, benchmark=False):
+        data_range = cfg.DATASET.DATA_RANGE
         if train:
             data_range = data_range[0]
         else:
-            if args.test_only and len(data_range) == 1:
+            if cfg.SOLVER.TEST_ONLY and len(data_range) == 1:
                 data_range = data_range[0]
             else:
                 data_range = data_range[1]
 
-        self.begin, self.end = list(map(lambda x: int(x), data_range))
-        super(DIV2K, self).__init__(
-            args, name=name, train=train, benchmark=benchmark
+        self.begin, self.end = data_range
+        super().__init__(
+            cfg, name=name, train=train, benchmark=benchmark
         )
 
     # def _scan(self):
