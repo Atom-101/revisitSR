@@ -43,40 +43,41 @@ class timer():
 
 
 class checkpoint():
-    def __init__(self, args, cfg):
-        self.args = args
+    def __init__(self, cfg):
+        # self.args = args
         self.cfg = cfg
         self.ok = True
         self.log = torch.Tensor()
         now = datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
 
-        if not args.load:
-            if not args.save:
-                args.save = now
-            self.dir = os.path.join('..', 'experiment', args.save)
+        if not cfg.LOG.LOAD:
+            if not cfg.LOG.SAVE:
+                cfg.LOG.SAVE = now
+            self.dir = os.path.join('..', 'experiment', cfg.LOG.SAVE)
         else:
-            self.dir = os.path.join('..', 'experiment', args.load)
+            self.dir = os.path.join('..', 'experiment', cfg.LOG.LOAD)
             if os.path.exists(self.dir):
                 self.log = torch.load(self.get_path('psnr_log.pt'))
                 print('Continue from epoch {}...'.format(len(self.log)))
             else:
-                args.load = ''
+                cfg.LOG.LOAD = ''
 
-        if args.reset:
+        if cfg.SOLVER.ITERATION_RESTART:
             os.system('rm -rf ' + self.dir)
-            args.load = ''
+            cfg.LOG.LOAD = ''
 
         os.makedirs(self.dir, exist_ok=True)
         os.makedirs(self.get_path('model'), exist_ok=True)
-        for d in args.data_test:
+        for d in cfg.DATASET.DATA_TEST:
             os.makedirs(self.get_path('results-{}'.format(d)), exist_ok=True)
 
         open_type = 'a' if os.path.exists(self.get_path('log.txt'))else 'w'
         self.log_file = open(self.get_path('log.txt'), open_type)
         with open(self.get_path('config.txt'), open_type) as f:
             f.write(now + '\n\n')
-            for arg in vars(args):
-                f.write('{}: {}\n'.format(arg, getattr(args, arg)))
+            print(cfg, file=f)
+            # for arg in vars(args):
+            #     f.write('{}: {}\n'.format(arg, getattr(args, arg)))
             f.write('\n')
 
         self.n_processes = 8
@@ -119,11 +120,11 @@ class checkpoint():
         intervel = self.cfg.SOLVER.ITERATION_VAL
         num_points = (iteration + 1) // intervel
         axis = list(range(1, num_points+1))
-        for idx_data, d in enumerate(self.args.data_test):
+        for idx_data, d in enumerate(self.cfg.DATASET.DATA_TEST):
             label = 'SR on {}'.format(d)
             fig = plt.figure()
             plt.title(label)
-            for idx_scale, scale in enumerate(self.args.scale):
+            for idx_scale, scale in enumerate(self.cfg.DATASET.DATA_SCALE):
                 plt.plot(
                     axis,
                     self.log[:, idx_data, idx_scale].numpy(),
@@ -164,7 +165,7 @@ class checkpoint():
             p.join()
 
     def save_results(self, dataset, filename, save_list, scale):
-        if self.args.save_results:
+        if self.cfg.LOG.SAVE_RESULTS:
             filename = self.get_path(
                 'results-{}'.format(dataset.dataset.name),
                 '{}_x{}_'.format(filename, scale)
@@ -172,7 +173,7 @@ class checkpoint():
 
             postfix = ('SR', 'LR', 'HR')
             for v, p in zip(save_list, postfix):
-                normalized = v[0].mul(255 / self.args.rgb_range)
+                normalized = v[0].mul(255 / self.cfg.DATASET.RGB_RANGE)
                 tensor_cpu = normalized.byte().permute(1, 2, 0).cpu()
                 self.queue.put(('{}{}.png'.format(filename, p), tensor_cpu))
 

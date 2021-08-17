@@ -258,7 +258,7 @@ def main():
 
     checkpoint = None
     # if args.local_rank == 0:
-    #     checkpoint = utility.checkpoint(args, cfg) #@TODO
+    checkpoint = utility.checkpoint(cfg) #@TODO
 
     cudnn.enabled = True
     cudnn.benchmark = True

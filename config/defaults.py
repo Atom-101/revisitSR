@@ -82,7 +82,7 @@ _C.SOLVER.TEST_EVERY = 1000
 # Whether or not to restart training from iteration 0 regardless
 # of the 'iteration' key in the checkpoint file. This option only
 # works when a pretrained checkpoint is loaded (default: False).
-_C.SOLVER.ITERATION_RESTART = False
+_C.SOLVER.ITERATION_RESTART = True
 
 _C.SOLVER.BASE_LR = 0.0001
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
