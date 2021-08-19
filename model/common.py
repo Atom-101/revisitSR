@@ -81,17 +81,9 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
 
 
 class PreActBase(nn.Module):
-    def __init__(self, planes: int, stochastic_depth: bool = False,
+    def __init__(self, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
         super().__init__()
-        self.aff1 = Affine2d(planes)
-        self.conv1 = conv3x3(planes, planes)
-
-        self.aff2 = Affine2d(planes)
-        self.conv2 = conv3x3(planes, planes)
-
-        self.relu = nn.ReLU(inplace=True)
-
         self.sd = stochastic_depth
         if stochastic_depth:
             self.prob = prob
@@ -112,7 +104,7 @@ class PreActBase(nn.Module):
             return identity + res
 
         # This block is skipped during training
-        for param in self.body.parameters():
+        for param in self.parameters():
             param.requires_grad = False
         return identity
 
@@ -127,7 +119,14 @@ class PreActBase(nn.Module):
 class PreActBasicBlock(PreActBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
-        super().__init__(planes, stochastic_depth, prob, multFlag)
+        super().__init__(stochastic_depth, prob, multFlag)
+        self.aff1 = Affine2d(planes)
+        self.conv1 = conv3x3(planes, planes)
+
+        self.aff2 = Affine2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+
+        self.relu = nn.ReLU(inplace=True)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
@@ -144,11 +143,17 @@ class PreActBasicBlock(PreActBase):
 class PreActBottleneck(PreActBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
-        super().__init__(planes, stochastic_depth, prob, multFlag)
+        super().__init__(stochastic_depth, prob, multFlag)
+        self.aff1 = Affine2d(planes)
         self.conv1 = conv1x1(planes, planes)
+
+        self.aff2 = Affine2d(planes)
+        self.conv2 = conv3x3(planes, planes)
 
         self.aff3 = Affine2d(planes)
         self.conv3 = conv1x1(planes, planes)
+
+        self.relu = nn.ReLU(inplace=True)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
@@ -171,7 +176,7 @@ class DropPath(nn.Module):
         super().__init__()
         self.p = p
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         if (self.p==0):
             return x
 
@@ -194,15 +199,16 @@ class SEBlock(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, x):
+    def forward(self,x: torch.Tensor) -> torch.Tensor:
         y = self.squeeze(x)
         y = self.excitation(y)
         return x * y
 
-class MBConvN(nn.Module):
+class MBConvN(PreActBase):
     def __init__(self, in_planes: int, out_planes: int, expansion_factor: int, kernel_size: int = 3,
-                stride: int = 1, skip_conn: bool = True, r: int = 24, p: float = 0) -> None:
-        super().__init__()
+                 stride: int = 1, skip_conn: bool = True, r: int = 24, p: float = 0, stochastic_depth: bool = False,
+                 prob: float = 1.0, multFlag: bool = True) -> None:
+        super().__init__(stochastic_depth, prob, multFlag)
 
         padding = (kernel_size-1)//2
         exp_planes = in_planes*expansion_factor
@@ -227,7 +233,7 @@ class MBConvN(nn.Module):
 
         self.droppath = DropPath(p)
 
-    def forward(self, x):
+    def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         residual= x
 
         x = self.pw_conv1(x)
