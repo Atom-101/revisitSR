@@ -258,15 +258,14 @@ def main():
 
     checkpoint = None
     # if args.local_rank == 0:
-    checkpoint = utility.checkpoint(cfg) #@TODO
-
+    checkpoint = utility.checkpoint(cfg)
     cudnn.enabled = True
     cudnn.benchmark = True
 
     _model, _loss = build_model_loss(cfg, args.local_rank, checkpoint, device)
     loader = data.Data(cfg)
 
-    t = trainer.Trainer(args, cfg, loader, _model, _loss, device, checkpoint)
+    t = trainer.Trainer(cfg, args.local_rank, loader, _model, _loss, device, checkpoint)
     t.test() if cfg.SOLVER.TEST_ONLY else t.train()
 
     # Tear down the process group
@@ -274,7 +273,7 @@ def main():
 
 
 def build_model_loss(cfg, rank, checkpoint, device):
-    _model = model.Model(cfg, checkpoint).to(device) #@TODO
+    _model = model.Model(cfg, checkpoint).to(device)
 
     # For multiprocessing distributed, DistributedDataParallel constructor
     # should always set the single device scope, otherwise,

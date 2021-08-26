@@ -117,7 +117,7 @@ class checkpoint():
         self.log_file.close()
 
     def plot_psnr(self, iteration):
-        intervel = self.cfg.SOLVER.ITERATION_VAL
+        intervel = self.cfg.SOLVER.TEST_EVERY
         num_points = (iteration + 1) // intervel
         axis = list(range(1, num_points+1))
         for idx_data, d in enumerate(self.cfg.DATASET.DATA_TEST):

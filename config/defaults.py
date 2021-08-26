@@ -48,9 +48,9 @@ _C.DATASET = CN()
 _C.DATASET.DATA_DIR = '/n/pfister_lab2/Lab/vcg_natural/SR/BIX2X3X4'
 _C.DATASET.DEMO_DIR = '../test'
 _C.DATASET.DATA_TRAIN = ['DF2K']
-_C.DATASET.DATA_TEST = ['DF2K']
+_C.DATASET.DATA_TEST = ['DF2K', 'Set5', 'Set14C', 'B100', 'Urban100', 'Manga109']
 _C.DATASET.DATA_RANGE = [(1,3550), (3551,3555)]
-_C.DATASET.DATA_EXT = 'bin'
+_C.DATASET.DATA_EXT = 'img' #'bin', 'sep' or 'img'
 _C.DATASET.DATA_SCALE = [4]
 _C.DATASET.OUT_PATCH_SIZE = 192
 _C.DATASET.RGB_RANGE = 255
@@ -84,7 +84,7 @@ _C.SOLVER.TEST_EVERY = 1000
 # works when a pretrained checkpoint is loaded (default: False).
 _C.SOLVER.ITERATION_RESTART = True
 
-_C.SOLVER.BASE_LR = 0.0001
+_C.SOLVER.BASE_LR = 1e-4
 _C.SOLVER.BIAS_LR_FACTOR = 1.0
 
 _C.SOLVER.MOMENTUM = 0.9  # SGD

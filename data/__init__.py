@@ -32,7 +32,7 @@ class Data:
 
         self.loader_test = []
         for d in cfg.DATASET.DATA_TEST:
-            if d in ['Set5', 'Set14', 'B100', 'Urban100']:
+            if d in ['Set5', 'Set14C', 'B100', 'Urban100', 'Manga109']:
                 m = import_module('data.benchmark')
                 testset = getattr(m, 'Benchmark')(cfg, train=False, name=d)
             else:

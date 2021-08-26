@@ -12,7 +12,6 @@ import torch.utils.data as data
 
 class SRData(data.Dataset):
     def __init__(self, cfg, name='', train=True, benchmark=False):
-        # self.args = args
         self.cfg = cfg
         self.name = name
         self.train = train
