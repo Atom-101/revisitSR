@@ -81,17 +81,9 @@ def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
 
 
 class PreActBase(nn.Module):
-    def __init__(self, planes: int, stochastic_depth: bool = False,
+    def __init__(self, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
         super().__init__()
-        self.aff1 = Affine2d(planes)
-        self.conv1 = conv3x3(planes, planes)
-
-        self.aff2 = Affine2d(planes)
-        self.conv2 = conv3x3(planes, planes)
-
-        self.relu = nn.ReLU(inplace=True)
-
         self.sd = stochastic_depth
         if stochastic_depth:
             self.prob = prob
@@ -112,7 +104,7 @@ class PreActBase(nn.Module):
             return identity + res
 
         # This block is skipped during training
-        for param in self.body.parameters():
+        for param in self.parameters():
             param.requires_grad = False
         return identity
 
@@ -127,7 +119,14 @@ class PreActBase(nn.Module):
 class PreActBasicBlock(PreActBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
-        super().__init__(planes, stochastic_depth, prob, multFlag)
+        super().__init__(stochastic_depth, prob, multFlag)
+        self.aff1 = Affine2d(planes)
+        self.conv1 = conv3x3(planes, planes)
+
+        self.aff2 = Affine2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+
+        self.relu = nn.ReLU(inplace=True)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
@@ -144,11 +143,17 @@ class PreActBasicBlock(PreActBase):
 class PreActBottleneck(PreActBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
-        super().__init__(planes, stochastic_depth, prob, multFlag)
+        super().__init__(stochastic_depth, prob, multFlag)
+        self.aff1 = Affine2d(planes)
         self.conv1 = conv1x1(planes, planes)
+
+        self.aff2 = Affine2d(planes)
+        self.conv2 = conv3x3(planes, planes)
 
         self.aff3 = Affine2d(planes)
         self.conv3 = conv1x1(planes, planes)
+
+        self.relu = nn.ReLU(inplace=True)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
@@ -162,5 +167,90 @@ class PreActBottleneck(PreActBase):
         x = self.aff3(x)
         x = self.relu(x)
         x = self.conv3(x)
+
+        return x
+
+
+class DropPath(nn.Module):
+    def __init__(self, p=0):
+        super().__init__()
+        self.p = p
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if (self.p==0):
+            return x
+
+        shape = (x.shape[0],) + (1,) * (x.ndim - 1)
+        random_tensor = (1-self.p) + torch.rand(shape, dtype=x.dtype, device=x.device)
+        random_tensor.floor_()
+        output = x.div(1-self.p) * random_tensor
+        return output
+
+
+class SEBlock(nn.Module):
+    def __init__(self, in_planes: int, reduction: int = 24) -> None:
+        super().__init__()
+
+        self.squeeze = nn.AdaptiveAvgPool2d(1)
+        self.excitation = nn.Sequential(
+            nn.Conv2d(in_planes, in_planes // reduction, kernel_size=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_planes // reduction, in_planes, kernel_size=1),
+            nn.Sigmoid()
+        )
+
+    def forward(self,x: torch.Tensor) -> torch.Tensor:
+        y = self.squeeze(x)
+        y = self.excitation(y)
+        return x * y
+
+class MBConvN(PreActBase):
+    def __init__(self, in_planes: int, out_planes: int, expansion_factor: int, kernel_size: int = 3,
+                 stride: int = 1, skip_conn: bool = True, r: int = 24, p: float = 0, stochastic_depth: bool = False,
+                 prob: float = 1.0, multFlag: bool = True) -> None:
+        super().__init__(stochastic_depth, prob, multFlag)
+
+        padding = (kernel_size-1)//2
+        exp_planes = in_planes*expansion_factor
+        self.skip_connection = (in_planes==out_planes) and (stride==1) and skip_conn
+        
+        #Pointwise Expand Convolution
+        self.pw_conv1 = conv1x1(in_planes, exp_planes)
+        self.bn1 = Affine2d(exp_planes)
+        self.act1 = nn.ReLU(inplace=True)
+
+        #Depthwise Convolution
+        self.dw_conv = nn.Conv2d(exp_planes, exp_planes, kernel_size, stride, padding, groups=exp_planes)
+        self.bn2 = Affine2d(exp_planes)
+        self.act2 = nn.ReLU(inplace=True)
+
+        #Squeeze-Excitation Layer
+        self.se = SEBlock(exp_planes, reduction=r)
+
+        #Pointwise Reduce Convolution
+        self.pw_conv2 = conv1x1(exp_planes, out_planes)
+        self.bn3 = Affine2d(out_planes) #No Activation
+
+        self.droppath = DropPath(p)
+
+    def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
+        residual= x
+
+        x = self.pw_conv1(x)
+        x = self.bn1(x)
+        x = self.act1(x)
+
+        x = self.dw_conv(x)
+        x = self.bn2(x)
+        x = self.act2(x)
+
+        x = self.se(x)
+
+        x = self.pw_conv2(x)
+        x = self.bn3(x)
+
+        if self.skip_connection:
+            x = self.droppath(x)
+            x += residual
 
         return x
