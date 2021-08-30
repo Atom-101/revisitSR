@@ -19,7 +19,11 @@ class EDSR(nn.Module):
         super(EDSR, self).__init__()
 
         n_resblocks = cfg.MODEL.N_RESBLOCKS
+        resblock = cfg.MODEL.RESBLOCK
         n_feats = cfg.MODEL.N_FEATS
+        stochastic_depth = cfg.MODEL.STOCHASTIC_DEPTH
+        multflag = cfg.MODEL.MULTFLAG
+        p_resblock = cfg.MODEL.P_RESBLOCK
         kernel_size = 3 
         scale = cfg.DATASET.DATA_SCALE[0]
         act = nn.ReLU(True)
@@ -35,12 +39,27 @@ class EDSR(nn.Module):
         m_head = [conv(cfg.DATASET.CHANNELS, n_feats, kernel_size)]
 
         # define body module
-        m_body = [
-            common.ResBlock(
-                conv, n_feats, kernel_size, act=act, res_scale=cfg.MODEL.RES_SCALE
-            ) for _ in range(n_resblocks)
-        ]
-        m_body.append(conv(n_feats, n_feats, kernel_size))
+        if resblock == 'mbconv':
+            m_body = [
+                common.MBConvN(
+                    n_feats, n_feats, cfg.MODEL.EXPANSION, cfg.MODEL.KERNEL_SIZE, r = cfg.MODEL.SE_REDUCTION,
+                    stochastic_depth=stochastic_depth, prob=p_resblock, multFlag=multflag
+                ) for _ in range(n_resblocks)
+            ]
+            m_body.append(conv(n_feats, n_feats, kernel_size))
+
+        else:
+            if resblock == 'basic':
+                ResBlock=common.PreActBasicBlock
+            elif resblock == 'bottleneck':
+                ResBlock=common.PreActBottleneck
+
+            m_body = [
+                ResBlock(
+                    n_feats, stochastic_depth, p_resblock, multflag
+                ) for _ in range(n_resblocks)
+            ]
+            m_body.append(conv(n_feats, n_feats, kernel_size))
 
         # define tail module
         m_tail = [

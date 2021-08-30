@@ -171,22 +171,6 @@ class PreActBottleneck(PreActBase):
         return x
 
 
-class DropPath(nn.Module):
-    def __init__(self, p=0):
-        super().__init__()
-        self.p = p
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if (self.p==0):
-            return x
-
-        shape = (x.shape[0],) + (1,) * (x.ndim - 1)
-        random_tensor = (1-self.p) + torch.rand(shape, dtype=x.dtype, device=x.device)
-        random_tensor.floor_()
-        output = x.div(1-self.p) * random_tensor
-        return output
-
-
 class SEBlock(nn.Module):
     def __init__(self, in_planes: int, reduction: int = 24) -> None:
         super().__init__()
@@ -204,9 +188,10 @@ class SEBlock(nn.Module):
         y = self.excitation(y)
         return x * y
 
+
 class MBConvN(PreActBase):
     def __init__(self, in_planes: int, out_planes: int, expansion_factor: int, kernel_size: int = 3,
-                 stride: int = 1, skip_conn: bool = True, r: int = 24, p: float = 0, stochastic_depth: bool = False,
+                 stride: int = 1, skip_conn: bool = True, r: int = 24, stochastic_depth: bool = False,
                  prob: float = 1.0, multFlag: bool = True) -> None:
         super().__init__(stochastic_depth, prob, multFlag)
 
@@ -231,8 +216,6 @@ class MBConvN(PreActBase):
         self.pw_conv2 = conv1x1(exp_planes, out_planes)
         self.bn3 = Affine2d(out_planes) #No Activation
 
-        self.droppath = DropPath(p)
-
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         residual= x
 
@@ -250,7 +233,6 @@ class MBConvN(PreActBase):
         x = self.bn3(x)
 
         if self.skip_connection:
-            x = self.droppath(x)
             x += residual
 
         return x

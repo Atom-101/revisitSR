@@ -279,7 +279,7 @@ def build_model_loss(cfg, rank, checkpoint, device):
     # should always set the single device scope, otherwise,
     # DistributedDataParallel will use all available devices.
     _model = nn.parallel.DistributedDataParallel(
-        _model, device_ids=[rank], output_device=rank)
+        _model, device_ids=[rank], output_device=rank, find_unused_parameters=True)
 
     _loss = None
     if not cfg.SOLVER.TEST_ONLY:
