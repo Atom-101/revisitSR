@@ -55,6 +55,7 @@ _C.DATASET = CN()
 _C.DATASET.DATA_DIR = '/n/pfister_lab2/Lab/vcg_natural/SR/BIX2X3X4'
 _C.DATASET.DEMO_DIR = '../test'
 _C.DATASET.DATA_TRAIN = ['DF2K']
+_C.DATASET.DATA_VAL = ['DF2K']
 _C.DATASET.DATA_TEST = ['DF2K', 'Set5', 'Set14C', 'B100', 'Urban100', 'Manga109']
 _C.DATASET.DATA_RANGE = [(1,3550), (3551,3555)]
 _C.DATASET.DATA_EXT = 'img' #'bin', 'sep' or 'img'

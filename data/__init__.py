@@ -31,7 +31,14 @@ class Data:
             )
 
         self.loader_test = []
-        for d in cfg.DATASET.DATA_TEST:
+        datatest = []
+
+        if (cfg.SOLVER.TEST_EVERY and not cfg.SOLVER.TEST_ONLY):
+            datatest = cfg.DATASET.DATA_VAL
+        elif (cfg.SOLVER.TEST_ONLY):
+            datatest = cfg.DATASET.DATA_TEST
+
+        for d in datatest:
             if d in ['Set5', 'Set14C', 'B100', 'Urban100', 'Manga109']:
                 m = import_module('data.benchmark')
                 testset = getattr(m, 'Benchmark')(cfg, train=False, name=d)

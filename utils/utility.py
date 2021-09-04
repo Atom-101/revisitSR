@@ -50,6 +50,13 @@ class checkpoint():
         self.log = torch.Tensor()
         now = datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
 
+        self.datatest = []
+
+        if (self.cfg.SOLVER.TEST_EVERY and not self.cfg.SOLVER.TEST_ONLY):
+            self.datatest = self.cfg.DATASET.DATA_VAL
+        elif (self.cfg.SOLVER.TEST_ONLY):
+            self.datatest = self.cfg.DATASET.DATA_TEST
+
         if not cfg.LOG.LOAD:
             if not cfg.LOG.SAVE:
                 cfg.LOG.SAVE = now
@@ -68,7 +75,7 @@ class checkpoint():
 
         os.makedirs(self.dir, exist_ok=True)
         os.makedirs(self.get_path('model'), exist_ok=True)
-        for d in cfg.DATASET.DATA_TEST:
+        for d in self.datatest:
             os.makedirs(self.get_path('results-{}'.format(d)), exist_ok=True)
 
         open_type = 'a' if os.path.exists(self.get_path('log.txt'))else 'w'
@@ -120,7 +127,7 @@ class checkpoint():
         intervel = self.cfg.SOLVER.TEST_EVERY
         num_points = (iteration + 1) // intervel
         axis = list(range(1, num_points+1))
-        for idx_data, d in enumerate(self.cfg.DATASET.DATA_TEST):
+        for idx_data, d in enumerate(self.datatest):
             label = 'SR on {}'.format(d)
             fig = plt.figure()
             plt.title(label)

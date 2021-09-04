@@ -7,7 +7,7 @@ Create a new conda environment and install PyTorch:
 ```shell
 conda create -n revisit_sr python=3.8
 source activate revisit_sr
-conda install pytorch torchvision cudatoolkit=11.1 -c pytorch -c nvidia
+conda install pytorch==1.9.0 torchvision==0.10.0 cudatoolkit=11.1 -c pytorch -c nvidia
 ```
 
 Install the required packages:
