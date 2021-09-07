@@ -8,7 +8,8 @@ import torch.nn.utils as utils
 from . import utility
 from .solver import *
 from tqdm import tqdm
-from torch.cuda.amp import autocast
+from torch.cuda.amp import autocast, GradScaler
+from torch.optim.swa_utils import AveragedModel, SWALR
 
 
 class Trainer():
@@ -29,10 +30,15 @@ class Trainer():
             self.lr_scheduler = build_lr_scheduler(cfg, self.optimizer)
             self.error_last = 1e8
             self.iteration_total = self.cfg.SOLVER.ITERATION_TOTAL
+        
+        self.scaler = GradScaler() if cfg.MODEL.MIXED_PRECESION else None
+
+        if self.cfg.SOLVER.SWA:
+            self.swa_model = AveragedModel(self.model).to(self.device)
+            self.swa_scheduler = SWALR(self.optimizer, swa_lr =self.cfg.SOLVER.SWA.LR_FACTOR)
 
     def train(self):
         self.model.train()
-
         timer = utility.timer()
         for i in range(self.iteration_total):
 
@@ -45,9 +51,14 @@ class Trainer():
                 sr = self.model(lr, 0)
                 loss = self.loss(sr, hr)
 
-            loss.backward()
-            self.optimizer.step()
-            self.lr_scheduler.step()
+            if self.cfg.MODEL.MIXED_PRECESION:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                loss.backward()
+                self.optimizer.step()
+            self.maybe_update_swa_model(i)
 
             if (self.rank is None or self.rank == 0) and i % 10 == 0:
                 self.log_train(i, loss, timer)
@@ -59,6 +70,7 @@ class Trainer():
             if (i+1) % self.cfg.SOLVER.TEST_EVERY == 0:
                 self.test(i)
                 self.model.train()
+        self.maybe_save_swa_model()
 
     def log_train(self, i, loss, timer):
         lr = self.optimizer.param_groups[0]['lr']
@@ -128,10 +140,46 @@ class Trainer():
 
             if not self.cfg.SOLVER.TEST_ONLY:
                 self.ckp.save(self, epoch, is_best=(
-                    best[1][0, 0] + 1 == epoch))
+                    (best[1][0, 0] + 1)*self.cfg.SOLVER.TEST_EVERY == epoch))
 
             self.ckp.write_log(
                 'Total: {:.2f}s\n'.format(timer_test.toc()), refresh=True
             )
 
         torch.set_grad_enabled(True)
+
+    def maybe_save_swa_model(self):
+        if not hasattr(self, 'swa_model'):
+            return
+
+        if self.cfg.MODEL.NORM_MODE in ['bn', 'sync_bn']:  # update bn statistics
+            for _ in range(self.cfg.SOLVER.SWA.BN_UPDATE_ITER):
+                sample = next(self.loader_train)
+                volume = sample.out_input
+                volume = volume.to(self.device, non_blocking=True)
+                with autocast(enabled=self.cfg.MODEL.MIXED_PRECESION):
+                    _ = self.swa_model(volume)
+
+        # save swa model
+        if self.rank is None or self.rank==0:
+            print("Save SWA model checkpoint.")
+            filename = os.path.join(self.ckp.get_path('model'), 'model_swa.pth.tar')
+            state = {'state_dict': self.swa_model.module.state_dict()}
+            torch.save(state, filename)
+
+        # maybe run test with swa model?
+
+    def maybe_update_swa_model(self, iter_total):
+        if not hasattr(self, 'swa_model'):
+            self.lr_scheduler.step()
+            return
+
+        swa_start = self.cfg.SOLVER.SWA.START_ITER
+        swa_merge = self.cfg.SOLVER.SWA.MERGE_ITER
+        if iter_total >= swa_start:
+            if iter_total % swa_merge == 0:
+                self.swa_model.update_parameters(self.model)
+            self.swa_scheduler.step()
+        else:
+            self.lr_scheduler.step()
+
