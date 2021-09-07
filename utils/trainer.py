@@ -68,7 +68,7 @@ class Trainer():
             del lr, hr, sr, loss
 
             if (i+1) % self.cfg.SOLVER.TEST_EVERY == 0:
-                self.test(i)
+                self.test(i+1)
                 self.model.train()
         self.maybe_save_swa_model()
 
