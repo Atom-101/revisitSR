@@ -22,7 +22,7 @@ _C.MODEL = CN()
 _C.MODEL.MIXED_PRECESION = False
 
 _C.MODEL.NAME = 'RCAN'
-_C.MODEL.ACT = 'relu'
+_C.MODEL.ACT = 0    # 0: relu; 1: lrelu; 2: swish
 _C.MODEL.PRE_TRAIN = ''
 _C.MODEL.EXTEND = '.'
 _C.MODEL.RESBLOCK = 'basic'

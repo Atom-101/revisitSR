@@ -26,7 +26,7 @@ class EDSR(nn.Module):
         p_resblock = cfg.MODEL.P_RESBLOCK
         kernel_size = 3 
         scale = cfg.DATASET.DATA_SCALE[0]
-        act = nn.ReLU(True)
+        act_list = [nn.ReLU(inplace=True), nn.LeakyReLU(inplace=True), nn.SiLU(inplace=True)]
         url_name = 'r{}f{}x{}'.format(n_resblocks, n_feats, scale)
         if url_name in url:
             self.url = url[url_name]
@@ -34,6 +34,8 @@ class EDSR(nn.Module):
             self.url = None
         self.sub_mean = common.MeanShift(cfg.DATASET.RGB_RANGE)
         self.add_mean = common.MeanShift(cfg.DATASET.RGB_RANGE, sign=1)
+
+        self.act = act_list[cfg.MODEL.ACT]
 
         # define head module
         m_head = [conv(cfg.DATASET.CHANNELS, n_feats, kernel_size)]
@@ -43,7 +45,7 @@ class EDSR(nn.Module):
             m_body = [
                 common.MBConvN(
                     n_feats, n_feats, cfg.MODEL.EXPANSION, cfg.MODEL.KERNEL_SIZE, r = cfg.MODEL.SE_REDUCTION,
-                    stochastic_depth=stochastic_depth, prob=p_resblock, multFlag=multflag
+                    stochastic_depth=stochastic_depth, act_layer=self.act, prob=p_resblock, multFlag=multflag
                 ) for _ in range(n_resblocks)
             ]
             m_body.append(conv(n_feats, n_feats, kernel_size))
@@ -56,7 +58,7 @@ class EDSR(nn.Module):
 
             m_body = [
                 ResBlock(
-                    n_feats, stochastic_depth, p_resblock, multflag
+                    n_feats, stochastic_depth=stochastic_depth, act_layer=self.act, prob=p_resblock, multFlag=multflag
                 ) for _ in range(n_resblocks)
             ]
             m_body.append(conv(n_feats, n_feats, kernel_size))

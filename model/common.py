@@ -118,7 +118,7 @@ class PreActBase(nn.Module):
 
 class PreActBasicBlock(PreActBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
-                 prob: float = 1.0, multFlag: bool = True) -> None:
+                 act_layer=nn.ReLU, prob: float = 1.0, multFlag: bool = True) -> None:
         super().__init__(stochastic_depth, prob, multFlag)
         self.aff1 = Affine2d(planes)
         self.conv1 = conv3x3(planes, planes)
@@ -126,15 +126,15 @@ class PreActBasicBlock(PreActBase):
         self.aff2 = Affine2d(planes)
         self.conv2 = conv3x3(planes, planes)
 
-        self.relu = nn.ReLU(inplace=True)
+        self.act = act_layer
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
-        x = self.relu(x)
+        x = self.act(x)
         x = self.conv1(x)
 
         x = self.aff2(x)
-        x = self.relu(x)
+        x = self.act(x)
         x = self.conv2(x)
 
         return x
@@ -142,7 +142,7 @@ class PreActBasicBlock(PreActBase):
 
 class PreActBottleneck(PreActBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
-                 prob: float = 1.0, multFlag: bool = True) -> None:
+                 act_layer=nn.ReLU, prob: float = 1.0, multFlag: bool = True) -> None:
         super().__init__(stochastic_depth, prob, multFlag)
         self.aff1 = Affine2d(planes)
         self.conv1 = conv1x1(planes, planes)
@@ -153,32 +153,32 @@ class PreActBottleneck(PreActBase):
         self.aff3 = Affine2d(planes)
         self.conv3 = conv1x1(planes, planes)
 
-        self.relu = nn.ReLU(inplace=True)
+        self.act = act_layer
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
-        x = self.relu(x)
+        x = self.act(x)
         x = self.conv1(x)
 
         x = self.aff2(x)
-        x = self.relu(x)
+        x = self.act(x)
         x = self.conv2(x)
 
         x = self.aff3(x)
-        x = self.relu(x)
+        x = self.act(x)
         x = self.conv3(x)
 
         return x
 
 
 class SEBlock(nn.Module):
-    def __init__(self, in_planes: int, reduction: int = 24) -> None:
+    def __init__(self, in_planes: int, reduction: int = 24, act_layer=nn.ReLU) -> None:
         super().__init__()
 
         self.squeeze = nn.AdaptiveAvgPool2d(1)
         self.excitation = nn.Sequential(
             nn.Conv2d(in_planes, in_planes // reduction, kernel_size=1),
-            nn.ReLU(inplace=True),
+            act_layer,
             nn.Conv2d(in_planes // reduction, in_planes, kernel_size=1),
             nn.Sigmoid()
         )
@@ -192,7 +192,7 @@ class SEBlock(nn.Module):
 class MBConvN(PreActBase):
     def __init__(self, in_planes: int, out_planes: int, expansion_factor: int, kernel_size: int = 3,
                  stride: int = 1, skip_conn: bool = True, r: int = 24, stochastic_depth: bool = False,
-                 prob: float = 1.0, multFlag: bool = True) -> None:
+                 act_layer=nn.ReLU, prob: float = 1.0, multFlag: bool = True) -> None:
         super().__init__(stochastic_depth, prob, multFlag)
 
         padding = (kernel_size-1)//2
@@ -202,15 +202,15 @@ class MBConvN(PreActBase):
         #Pointwise Expand Convolution
         self.pw_conv1 = conv1x1(in_planes, exp_planes)
         self.bn1 = Affine2d(exp_planes)
-        self.act1 = nn.ReLU(inplace=True)
+        self.act1 = act_layer
 
         #Depthwise Convolution
         self.dw_conv = nn.Conv2d(exp_planes, exp_planes, kernel_size, stride, padding, groups=exp_planes)
         self.bn2 = Affine2d(exp_planes)
-        self.act2 = nn.ReLU(inplace=True)
+        self.act2 = act_layer
 
         #Squeeze-Excitation Layer
-        self.se = SEBlock(exp_planes, reduction=r)
+        self.se = SEBlock(exp_planes, reduction=r, act_layer=act_layer)
 
         #Pointwise Reduce Convolution
         self.pw_conv2 = conv1x1(exp_planes, out_planes)

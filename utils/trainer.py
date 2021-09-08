@@ -33,7 +33,7 @@ class Trainer():
         
         self.scaler = GradScaler() if cfg.MODEL.MIXED_PRECESION else None
 
-        if self.cfg.SOLVER.SWA:
+        if self.cfg.SOLVER.SWA.ENABLED and not self.cfg.SOLVER.TEST_ONLY:
             self.swa_model = AveragedModel(self.model).to(self.device)
             self.swa_scheduler = SWALR(self.optimizer, swa_lr =self.cfg.SOLVER.SWA.LR_FACTOR)
 
@@ -78,7 +78,7 @@ class Trainer():
         avg_itertime = total_time / (i+1)
         est_timeleft = avg_itertime * (self.iteration_total - i) / 3600
         print(
-            "[Iteration %05d] Loss: %.5f, LR: %.5f, " % (i, loss.item(), lr)
+            "[Iteration %05d] Loss: %.5f, LR: %.5f, " % (i+1, loss.item(), lr)
             + "Iter time: %.4fs, Total time: %.2fh, Time Left %.2fh." % (
                 avg_itertime, total_time / 3600, est_timeleft
             )
@@ -128,7 +128,7 @@ class Trainer():
                             scale,
                             self.ckp.log[-1, idx_data, idx_scale],
                             best[0][idx_data, idx_scale],
-                            best[1][idx_data, idx_scale] + 1
+                            (best[1][idx_data, idx_scale] + 1)*self.cfg.SOLVER.TEST_EVERY
                         )
                     )
 
