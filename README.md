@@ -1,4 +1,4 @@
-# Revisiting Deep Models for Image Super Resolution
+# A PyTorch Framework for Image Super-Resolution
 
 ## Environment Setup
 
