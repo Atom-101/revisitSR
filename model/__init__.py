@@ -19,14 +19,14 @@ class Model(nn.Module):
         self.save_models = cfg.LOG.SAVE_MODELS
 
         module = import_module('model.' + cfg.MODEL.NAME.lower())
-        self.model = module.make_model(cfg) #@TODO
+        self.model = module.make_model(cfg)
 
         if ckp is not None:
             self.load(
                 ckp.get_path('model'),
                 pre_train=cfg.MODEL.PRE_TRAIN,
                 resume=not cfg.SOLVER.ITERATION_RESTART,
-                cpu=bool(cfg.SYSTEM.NUM_GPU)
+                cpu=not bool(cfg.SYSTEM.NUM_GPU)
             )
             print(self.model, file=ckp.log_file)
 
@@ -76,8 +76,8 @@ class Model(nn.Module):
                 **kwargs
             )
 
-        if load_from:
-            self.model.load_state_dict(load_from, strict=False)
+        if load_from and 'state_dict' in load_from.keys():
+            self.model.load_state_dict(load_from['state_dict'], strict=False)
 
     def forward_chop(self, x, shave=10, min_size=160000):
         # min_size: 400x400

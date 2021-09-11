@@ -65,7 +65,7 @@ class checkpoint():
             self.dir = os.path.join('..', 'experiment', cfg.LOG.LOAD)
             if os.path.exists(self.dir):
                 self.log = torch.load(self.get_path('psnr_log.pt'))
-                print('Continue from epoch {}...'.format(len(self.log)))
+                print('Continue from epoch {}...'.format(len(self.log)*self.cfg.SOLVER.TEST_EVERY))
             else:
                 cfg.LOG.LOAD = ''
 
@@ -78,7 +78,7 @@ class checkpoint():
         for d in self.datatest:
             os.makedirs(self.get_path('results-{}'.format(d)), exist_ok=True)
 
-        open_type = 'a' if os.path.exists(self.get_path('log.txt'))else 'w'
+        open_type = 'a' if os.path.exists(self.get_path('log.txt')) else 'w'
         self.log_file = open(self.get_path('log.txt'), open_type)
         with open(self.get_path('config.txt'), open_type) as f:
             f.write(now + '\n\n')
@@ -103,7 +103,7 @@ class checkpoint():
             save_dirs.append(os.path.join(apath, 'model_best.pth.tar'))
 
         state = {'iteration': iteration + 1,
-                 'state_dict': trainer.model.module.state_dict(),  # DP, DDP
+                 'state_dict': trainer.model.module.model.state_dict(),  # DP, DDP
                  'optimizer': trainer.optimizer.state_dict(),
                  'lr_scheduler': trainer.lr_scheduler.state_dict()}
 
