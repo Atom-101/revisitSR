@@ -5,15 +5,22 @@
 Create a new conda environment and install PyTorch:
 
 ```shell
-conda create -n revisit_sr python=3.8
-source activate revisit_sr
+conda create -n ptsr python=3.8 numpy
+conda activate ptsr
 conda install pytorch==1.9.0 torchvision==0.10.0 cudatoolkit=11.1 -c pytorch -c nvidia
 ```
 
 Install the required packages:
 
 ```shell
-pip install -r requirements.txt
+git clone https://github.com/zudi-lin/ptsr.git
+cd ptsr
+pip install --editable .
+```
+
+Run tests to validate the installation:
+```
+python -m unittest discover -b tests
 ```
 
 ## Multi-processing Distributed Data Parallel Training

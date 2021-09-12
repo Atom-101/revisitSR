@@ -22,22 +22,24 @@ _C.MODEL = CN()
 _C.MODEL.MIXED_PRECESION = False
 
 _C.MODEL.NAME = 'RCAN'
-_C.MODEL.ACT = 0    # 0: relu; 1: lrelu; 2: swish
+_C.MODEL.ACT_MODE = 'relu'
 _C.MODEL.PRE_TRAIN = ''
 _C.MODEL.EXTEND = '.'
-_C.MODEL.RESBLOCK = 'basic'
-_C.MODEL.N_RESBLOCKS = 16
-_C.MODEL.N_FEATS = 64
+_C.MODEL.BLOCK_TYPE = 'basicblock'
+_C.MODEL.N_RESBLOCKS = 8
+_C.MODEL.N_RESGROUPS = 8
+_C.MODEL.PLANES = 64
 _C.MODEL.STOCHASTIC_DEPTH = False
+_C.MODEL.STOCHASTIC_DEPTH_PROB = None
 _C.MODEL.P_RESBLOCK = 1.0
-_C.MODEL.MULTFLAG = True
+_C.MODEL.MULT_FLAG = True
 _C.MODEL.EXPANSION = 1
 _C.MODEL.KERNEL_SIZE = 3
-_C.MODEL.RES_SCALE = 1.0
 _C.MODEL.SHIFT_MEAN = True
 _C.MODEL.DILATION = False
 _C.MODEL.SELF_ENSEMBLE = False
 _C.MODEL.SE_REDUCTION = 24
+_C.MODEL.SHORT_SKIP = True
 
 # RDN specific
 _C.MODEL.G0 = 64
@@ -56,10 +58,11 @@ _C.DATASET.DATA_DIR = '/n/pfister_lab2/Lab/vcg_natural/SR/BIX2X3X4'
 _C.DATASET.DEMO_DIR = '../test'
 _C.DATASET.DATA_TRAIN = ['DF2K']
 _C.DATASET.DATA_VAL = ['DF2K']
-_C.DATASET.DATA_TEST = ['DF2K', 'Set5', 'Set14C', 'B100', 'Urban100', 'Manga109']
-_C.DATASET.DATA_RANGE = [(1,3550), (3551,3555)]
-_C.DATASET.DATA_EXT = 'img' #'bin', 'sep' or 'img'
-_C.DATASET.DATA_SCALE = [4]
+_C.DATASET.DATA_TEST = ['DF2K', 'Set5',
+                        'Set14C', 'B100', 'Urban100', 'Manga109']
+_C.DATASET.DATA_RANGE = [(1, 3550), (3551, 3555)]
+_C.DATASET.DATA_EXT = 'img'  # 'bin', 'sep' or 'img'
+_C.DATASET.DATA_SCALE = 4
 _C.DATASET.OUT_PATCH_SIZE = 192
 _C.DATASET.RGB_RANGE = 255
 _C.DATASET.CHANNELS = 3
@@ -100,7 +103,7 @@ _C.SOLVER.BETAS = (0.9, 0.999)  # ADAM
 
 # The weight decay that's applied to parameters of normalization layers
 # (typically the affine transformation)
-_C.SOLVER.WEIGHT_DECAY = 0 #0.0001
+_C.SOLVER.WEIGHT_DECAY = 0  # 0.0001
 _C.SOLVER.WEIGHT_DECAY_NORM = 0.0
 _C.SOLVER.WEIGHT_DECAY_BIAS = 0.0
 
