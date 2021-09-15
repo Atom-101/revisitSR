@@ -7,7 +7,7 @@ from yacs.config import CfgNode
 
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau
 from .lr_scheduler import WarmupCosineLR, WarmupMultiStepLR
-from model.common import Affine2d
+from ptsr.model.common import Affine2d
 
 # 0. Gradient Clipping
 

@@ -66,13 +66,22 @@ class ISRNet(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, ckp=None):
         super().__init__()
-        self.scale = cfg.DATASET.DATA_SCALE
+        self.scale = cfg.DATASET.DATA_SCALE[0]
         self.self_ensemble = cfg.MODEL.SELF_ENSEMBLE
         self.chop = cfg.DATASET.CHOP
 
         self.model = self.make_model(cfg)
+
+        if ckp is not None:
+            self.load(
+                ckp.get_path('model'),
+                pre_train=cfg.MODEL.PRE_TRAIN,
+                resume=not cfg.SOLVER.ITERATION_RESTART,
+                cpu=not bool(cfg.SYSTEM.NUM_GPU)
+            )
+            print(self.model, file=ckp.log_file)
 
     def make_model(self, cfg):
         n = cfg.MODEL.N_RESGROUPS
@@ -80,7 +89,7 @@ class Model(nn.Module):
             'n_resgroups': n,
             'n_resblocks': cfg.MODEL.N_RESBLOCKS,
             'planes': cfg.MODEL.PLANES,
-            'scale': cfg.DATASET.DATA_SCALE,
+            'scale': cfg.DATASET.DATA_SCALE[0],
             'block_type': cfg.MODEL.BLOCK_TYPE,
             'short_skip': cfg.MODEL.SHORT_SKIP,
             'channels': cfg.DATASET.CHANNELS,
@@ -104,6 +113,39 @@ class Model(nn.Module):
             options['prob'] = list(prob_list)
 
         return ISRNet(**options)
+
+    def load(self, apath, pre_train='', resume=-1, cpu=False):
+        load_from = None
+        kwargs = {}
+        if cpu:
+            kwargs = {'map_location': lambda storage, loc: storage}
+
+        if resume == -1:
+            load_from = torch.load(
+                os.path.join(apath, 'model_latest.pt'),
+                **kwargs
+            )
+        elif resume == 0:
+            if pre_train == 'download':
+                print('Download the model')
+                dir_model = os.path.join('..', 'models')
+                os.makedirs(dir_model, exist_ok=True)
+                load_from = torch.utils.model_zoo.load_url(
+                    self.model.url,
+                    model_dir=dir_model,
+                    **kwargs
+                )
+            elif pre_train:
+                print('Load the model from {}'.format(pre_train))
+                load_from = torch.load(pre_train, **kwargs)
+        else:
+            load_from = torch.load(
+                os.path.join(apath, 'model_{}.pt'.format(resume)),
+                **kwargs
+            )
+
+        if load_from and 'state_dict' in load_from.keys():
+            self.model.load_state_dict(load_from['state_dict'], strict=False)
 
     def forward(self, x):
         if self.training:

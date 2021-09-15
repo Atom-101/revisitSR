@@ -12,6 +12,8 @@ requirements = [
     'matplotlib>=3.3.0',
     'yacs>=0.1.8',
     'imageio>=2.9.0',
+    'GPUtil>=1.4.0',
+    'tqdm>=4.62.0'
 ]
 
 

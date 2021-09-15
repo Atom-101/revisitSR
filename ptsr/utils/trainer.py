@@ -48,7 +48,7 @@ class Trainer():
 
             self.optimizer.zero_grad()
             with autocast(enabled=self.cfg.MODEL.MIXED_PRECESION):
-                sr = self.model(lr, 0)
+                sr = self.model(lr)
                 loss = self.loss(sr, hr)
 
             if self.cfg.MODEL.MIXED_PRECESION:

@@ -19,7 +19,7 @@ class Data:
             datasets = []
             for d in cfg.DATASET.DATA_TRAIN:
                 module_name = d if d.find('DIV2K-Q') < 0 else 'DIV2KJPEG'
-                m = import_module('data.' + module_name.lower())
+                m = import_module('ptsr.data.' + module_name.lower())
                 datasets.append(getattr(m, module_name)(cfg, name=d))
 
             self.loader_train = dataloader.DataLoader(
@@ -44,7 +44,7 @@ class Data:
                 testset = getattr(m, 'Benchmark')(cfg, train=False, name=d)
             else:
                 module_name = d if d.find('DIV2K-Q') < 0 else 'DIV2KJPEG'
-                m = import_module('data.' + module_name.lower())
+                m = import_module('ptsr.data.' + module_name.lower())
                 testset = getattr(m, module_name)(cfg, train=False, name=d)
 
             self.loader_test.append(

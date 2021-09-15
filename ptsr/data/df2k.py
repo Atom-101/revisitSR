@@ -1,5 +1,5 @@
 import os
-from data import srdata
+from ptsr.data import srdata
 
 class DF2K(srdata.SRData):
     def __init__(self, cfg, name='DF2K', train=True, benchmark=False):

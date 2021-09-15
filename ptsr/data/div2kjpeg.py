@@ -1,6 +1,6 @@
 import os
-from data import srdata
-from data import div2k
+from ptsr.data import srdata
+from ptsr.data import div2k
 
 class DIV2KJPEG(div2k.DIV2K):
     def __init__(self, cfg, name='', train=True, benchmark=False):

@@ -1,4 +1,4 @@
-from data import srdata
+from ptsr.data import srdata
 
 class SR291(srdata.SRData):
     def __init__(self, cfg, name='SR291', train=True, benchmark=False):

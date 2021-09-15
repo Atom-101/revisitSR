@@ -7,10 +7,10 @@ import torch.nn as nn
 import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 
-import data
-import model
-from config import get_cfg_defaults
-from utils import template, utility, trainer
+from ptsr import model
+from ptsr.data import Data
+from ptsr.config import get_cfg_defaults
+from ptsr.utils import template, utility, trainer
 
 def init_seed(seed: int):
     import random
@@ -94,7 +94,7 @@ def main():
     cudnn.benchmark = True
 
     _model, _loss = build_model_loss(cfg, args.local_rank, checkpoint, device)
-    loader = data.Data(cfg)
+    loader = Data(cfg)
 
     t = trainer.Trainer(cfg, args.local_rank, loader, _model, _loss, device, checkpoint)
     t.test() if cfg.SOLVER.TEST_ONLY else t.train()

@@ -3,7 +3,7 @@ import glob
 import random
 import pickle
 
-from data import common
+from ptsr.data import common
 
 import numpy as np
 import imageio

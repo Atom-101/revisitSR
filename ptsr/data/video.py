@@ -1,6 +1,6 @@
 import os
 
-from data import common
+from ptsr.data import common
 
 import cv2
 import numpy as np
