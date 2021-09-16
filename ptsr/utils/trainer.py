@@ -106,7 +106,7 @@ class Trainer():
                     for lr, hr, filename in tqdm(d, ncols=80):
                         lr = lr.to(self.device, non_blocking=True)
                         hr = hr.to(self.device, non_blocking=True)
-                        sr = self.model(lr, idx_scale)
+                        sr = self.model(lr)
                         sr = utility.quantize(sr, self.cfg.DATASET.RGB_RANGE)
 
                         save_list = [sr]

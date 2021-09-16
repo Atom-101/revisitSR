@@ -109,8 +109,10 @@ def build_model_loss(cfg, rank, checkpoint, device):
     # For multiprocessing distributed, DistributedDataParallel constructor
     # should always set the single device scope, otherwise,
     # DistributedDataParallel will use all available devices.
+    find_unused_param = cfg.MODEL.STOCHASTIC_DEPTH
+
     _model = nn.parallel.DistributedDataParallel(
-        _model, device_ids=[rank], output_device=rank, find_unused_parameters=True)
+        _model, device_ids=[rank], output_device=rank, find_unused_parameters=find_unused_param)
 
     _loss = None
     if not cfg.SOLVER.TEST_ONLY:

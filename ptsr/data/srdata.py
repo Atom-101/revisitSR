@@ -18,7 +18,7 @@ class SRData(data.Dataset):
         self.split = 'train' if train else 'test'
         self.do_eval = True
         self.benchmark = benchmark
-        self.input_large = (cfg.MODEL.NAME == 'VDSR')
+        self.input_large = False
         self.scale = cfg.DATASET.DATA_SCALE
         self.idx_scale = 0
         

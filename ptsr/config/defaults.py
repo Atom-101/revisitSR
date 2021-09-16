@@ -21,7 +21,6 @@ _C.MODEL = CN()
 # Mixed-precision training/inference
 _C.MODEL.MIXED_PRECESION = False
 
-_C.MODEL.NAME = 'RCAN'
 _C.MODEL.ACT_MODE = 'relu'
 _C.MODEL.PRE_TRAIN = ''
 _C.MODEL.EXTEND = '.'
