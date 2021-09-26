@@ -58,6 +58,8 @@ _C.DATASET.RGB_RANGE = 255
 _C.DATASET.CHANNELS = 3
 _C.DATASET.CHOP = False
 
+_C.DATASET.REJECTION_SAMPLING = CN({"ENABLED": True, "EPSILON": 0.2, "MAX_PSNR": 20})
+
 
 # -----------------------------------------------------------------------------
 # Augment

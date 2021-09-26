@@ -4,9 +4,11 @@ import random
 import pickle
 
 from ptsr.data import common
+from ptsr.utils.utility import calc_psnr
 
 import numpy as np
 import imageio
+from skimage.transform import resize  
 import torch
 import torch.utils.data as data
 
@@ -198,20 +200,33 @@ class SRData(data.Dataset):
 
     def get_patch(self, lr, hr):
         scale = self.scale[self.idx_scale]
+        # wonr work for multiscale
         if self.train:
-            lr, hr = common.get_patch(
+            lr_patch, hr_patch = common.get_patch(
                 lr, hr,
                 patch_size=self.cfg.DATASET.OUT_PATCH_SIZE,
                 scale=scale,
                 multi=(len(self.scale) > 1),
                 input_large=self.input_large
             )
-            if self.cfg.AUGMENT.ENABLED: lr, hr = common.augment(lr, hr)
+            
+            if self.cfg.DATASET.REJECTION_SAMPLING.ENABLED and random.random() <= self.cfg.DATASET.REJECTION_SAMPLING.EPSILON:
+                while calc_psnr(torch.as_tensor(resize(lr_patch, hr_patch.shape[:2])).permute(2,0,1), torch.as_tensor(hr_patch).permute(2,0,1), scale, self.cfg.DATASET.RGB_RANGE) > self.cfg.DATASET.REJECTION_SAMPLING.MAX_PSNR:
+                    lr_patch, hr_patch = common.get_patch(
+                        lr, hr,
+                        patch_size=self.cfg.DATASET.OUT_PATCH_SIZE,
+                        scale=scale,
+                        multi=(len(self.scale) > 1),
+                        input_large=self.input_large
+                    )        
+            
+            if self.cfg.AUGMENT.ENABLED: lr_patch, hr_patch = common.augment(lr_patch, hr_patch)
         else:
             ih, iw = lr.shape[:2]
-            hr = hr[0:ih * scale, 0:iw * scale]
+            hr_patch = hr[0:ih * scale, 0:iw * scale]
+            lr_patch = lr
 
-        return lr, hr
+        return lr_patch, hr_patch
 
     def set_scale(self, idx_scale):
         if not self.input_large:
