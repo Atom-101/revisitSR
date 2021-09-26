@@ -131,16 +131,16 @@ def build_optimizer(cfg: CfgNode, model: torch.nn.Module) -> torch.optim.Optimiz
             params += [{"params": [value], "lr": lr,
                         "weight_decay": weight_decay}]
 
-    solver_type = cfg.SOLVER.TYPE
-    if solver_type == 'sgd':
+    solver_name = cfg.SOLVER.NAME
+    if solver_name == 'SGD':
         optimizer = torch.optim.SGD(
             params, cfg.SOLVER.BASE_LR, momentum=cfg.SOLVER.MOMENTUM)
-    elif solver_type == 'adam':
-        optimizer = torch.optim.Adam(
+    elif solver_name in ['Adam', 'AdamW']:
+        optimizer = getattr(torch.optim, solver_name)(
             params, cfg.SOLVER.BASE_LR, betas=cfg.SOLVER.BETAS)
     else:
         raise ValueError(
-            "Solver type {} is not supported!".format(solver_type))
+            "Solver type {} is not supported!".format(solver_name))
 
     optimizer = maybe_add_gradient_clipping(cfg, optimizer)
     print('Optimizer: ', optimizer.__class__.__name__)

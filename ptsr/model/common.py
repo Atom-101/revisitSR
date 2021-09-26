@@ -48,16 +48,18 @@ class ResidualBase(nn.Module):
 
 class PreActBasicBlock(ResidualBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
-                 act_mode: str = 'relu', prob: float = 1.0,
-                 multFlag: bool = True, **_):
+                 act_mode: str = 'relu', prob: float = 1.0, multFlag: bool = True,
+                 zero_inti_residual: bool = False, **_) -> None:
         super().__init__(stochastic_depth, prob, multFlag)
         self.aff1 = Affine2d(planes)
         self.conv1 = conv3x3(planes, planes)
 
         self.aff2 = Affine2d(planes)
         self.conv2 = conv3x3(planes, planes)
-
         self.act = get_activation(act_mode)
+
+        if zero_inti_residual:
+            nn.init.constant_(self.aff2.weight, 0)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
@@ -73,8 +75,8 @@ class PreActBasicBlock(ResidualBase):
 
 class PreActBottleneck(ResidualBase):
     def __init__(self, planes: int, stochastic_depth: bool = False,
-                 act_mode: str = 'relu', prob: float = 1.0,
-                 multFlag: bool = True, **_):
+                 act_mode: str = 'relu', prob: float = 1.0, multFlag: bool = True,
+                 zero_inti_residual: bool = False, **_) -> None:
         super().__init__(stochastic_depth, prob, multFlag)
         self.aff1 = Affine2d(planes)
         self.conv1 = conv1x1(planes, planes)
@@ -84,8 +86,10 @@ class PreActBottleneck(ResidualBase):
 
         self.aff3 = Affine2d(planes)
         self.conv3 = conv1x1(planes, planes)
-
         self.act = get_activation(act_mode)
+
+        if zero_inti_residual:
+            nn.init.constant_(self.aff3.weight, 0)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.aff1(x)
@@ -123,7 +127,8 @@ class SEBlock(nn.Module):
 
 class MBConvBlock(ResidualBase):
     def __init__(self, planes: int, stochastic_depth: bool = False, act_mode: str = 'relu',
-                 prob: float = 1.0, multFlag: bool = True, reduction: int = 8) -> None:
+                 prob: float = 1.0, multFlag: bool = True, reduction: int = 8,
+                 zero_inti_residual: bool = False) -> None:
         super().__init__(stochastic_depth, prob, multFlag)
 
         self.conv1 = conv1x1(planes, planes)
@@ -135,8 +140,10 @@ class MBConvBlock(ResidualBase):
 
         self.conv3 = conv1x1(planes, planes)
         self.aff3 = Affine2d(planes)
-
         self.act = get_activation(act_mode)
+
+        if zero_inti_residual:
+            nn.init.constant_(self.aff3.weight, 0)
 
     def _forward_res(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv1(x)

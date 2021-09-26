@@ -30,23 +30,15 @@ _C.MODEL.N_RESGROUPS = 8
 _C.MODEL.PLANES = 64
 _C.MODEL.STOCHASTIC_DEPTH = False
 _C.MODEL.STOCHASTIC_DEPTH_PROB = None
+_C.MODEL.ZERO_INIT_RESIDUAL = True
 _C.MODEL.MULT_FLAG = True
 _C.MODEL.EXPANSION = 1
 _C.MODEL.KERNEL_SIZE = 3
 _C.MODEL.SHIFT_MEAN = True
 _C.MODEL.DILATION = False
 _C.MODEL.SELF_ENSEMBLE = False
-_C.MODEL.SE_REDUCTION = 24
+_C.MODEL.SE_REDUCTION = 4
 _C.MODEL.SHORT_SKIP = True
-
-# RDN specific
-_C.MODEL.G0 = 64
-_C.MODEL.RDN_K_SIZE = 3
-_C.MODEL.RDN_CONFIG = 'B'
-
-# RCAN specific
-_C.MODEL.N_RESGROUPS = 10
-_C.MODEL.REDUCTION = 16
 
 # -----------------------------------------------------------------------------
 # Dataset
@@ -78,8 +70,8 @@ _C.AUGMENT = CN({"ENABLED": False})
 # -----------------------------------------------------------------------------
 _C.SOLVER = CN()
 
-# Solver type needs to be one of 'sgd', 'adam'
-_C.SOLVER.TYPE = 'adam'
+# Solver type needs to be one of 'SGD', 'Adam', 'AdamW'
+_C.SOLVER.NAME = 'Adam'
 # Specify the learning rate scheduler.
 _C.SOLVER.LR_SCHEDULER_NAME = "WarmupCosineLR"
 
@@ -113,7 +105,7 @@ _C.SOLVER.STEPS = (30000, 35000)
 
 _C.SOLVER.WARMUP_FACTOR = 1.0 / 1000
 
-_C.SOLVER.WARMUP_ITERS = 10000
+_C.SOLVER.WARMUP_ITERS = 1000
 
 _C.SOLVER.WARMUP_METHOD = "linear"
 

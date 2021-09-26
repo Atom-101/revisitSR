@@ -97,9 +97,11 @@ class Model(nn.Module):
             'act_mode': cfg.MODEL.ACT_MODE,
             'stochastic_depth': cfg.MODEL.STOCHASTIC_DEPTH,
             'multFlag': cfg.MODEL.MULT_FLAG,
-            'reduction': cfg.MODEL.REDUCTION,  # SE block
+            'reduction': cfg.MODEL.SE_REDUCTION,  # SE block
+            'zero_inti_residual': cfg.MODEL.ZERO_INIT_RESIDUAL,
         }
 
+        # build a probability list for stochastic depth
         prob = cfg.MODEL.STOCHASTIC_DEPTH_PROB
         if prob is None:
             options['prob'] = [0.5] * n
@@ -131,18 +133,14 @@ class Model(nn.Module):
                 dir_model = os.path.join('..', 'models')
                 os.makedirs(dir_model, exist_ok=True)
                 load_from = torch.utils.model_zoo.load_url(
-                    self.model.url,
-                    model_dir=dir_model,
-                    **kwargs
-                )
+                    self.model.url, model_dir=dir_model, **kwargs)
             elif pre_train:
                 print('Load the model from {}'.format(pre_train))
                 load_from = torch.load(pre_train, **kwargs)
         else:
             load_from = torch.load(
                 os.path.join(apath, 'model_{}.pt'.format(resume)),
-                **kwargs
-            )
+                **kwargs)
 
         if load_from and 'state_dict' in load_from.keys():
             self.model.load_state_dict(load_from['state_dict'], strict=False)
