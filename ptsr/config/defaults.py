@@ -11,7 +11,7 @@ _C.DEBUG = False
 _C.SYSTEM = CN()
 _C.SYSTEM.NUM_CPU = 4
 _C.SYSTEM.NUM_GPU = 1
-_C.SYSTEM.NUM_WORKERS = 4
+_C.SYSTEM.NUM_WORKERS = 0 #4
 
 # -----------------------------------------------------------------------------
 # Model
@@ -95,7 +95,7 @@ _C.SOLVER.BETAS = (0.9, 0.999)  # ADAM
 
 # The weight decay that's applied to parameters of normalization layers
 # (typically the affine transformation)
-_C.SOLVER.WEIGHT_DECAY = 0  # 0.0001
+_C.SOLVER.WEIGHT_DECAY = 0.0  # 0.0001
 _C.SOLVER.WEIGHT_DECAY_NORM = 0.0
 _C.SOLVER.WEIGHT_DECAY_BIAS = 0.0
 
@@ -136,7 +136,7 @@ _C.SOLVER.SWA.MERGE_ITER = 50
 _C.SOLVER.SWA.BN_UPDATE_ITER = 2000
 
 _C.SOLVER.SELF_ENSEMBLE = False
-_C.SOLVER.TEST_ONLY = False
+_C.SOLVER.TEST_ONLY = True #False
 _C.SOLVER.GAN_K = 1
 
 _C.SOLVER.LOSS = CN()

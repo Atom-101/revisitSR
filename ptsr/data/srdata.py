@@ -23,6 +23,7 @@ class SRData(data.Dataset):
         self.input_large = False
         self.scale = cfg.DATASET.DATA_SCALE
         self.idx_scale = 0
+        self.psnrs = []
         
         self._set_filesystem(cfg.DATASET.DATA_DIR)
         if cfg.DATASET.DATA_EXT.find('img') < 0:
@@ -209,9 +210,29 @@ class SRData(data.Dataset):
                 multi=(len(self.scale) > 1),
                 input_large=self.input_large
             )
-            
+            psnr = calc_psnr(torch.as_tensor(resize(lr_patch, hr_patch.shape[:2], order=3)).permute(2,0,1)[None], 
+                    torch.as_tensor(hr_patch).permute(2,0,1)[None], 
+                    scale, 
+                    self.cfg.DATASET.RGB_RANGE
+            )
+            print(psnr)
+            self.psnrs.append(psnr)
+            if len(self.psnrs) >= 5000:
+                with open('psnr_5000_file.txt', 'a') as f:
+                    for psnr in self.psnrs:
+                        print(psnr, file=f)
+                raise ValueError()
+            # if 15 < psnr < 20:
+            #     import matplotlib.pyplot as plt
+            #     fig,ax = plt.subplots(1,2)
+            #     ax[0].imshow(hr_patch)
+            #     ax[1].imshow(resize(lr_patch, hr_patch.shape[:2], order=3))
+            #     # plt.imsave(f'psnr_{psnr:.2f}.png', hr_patch)
+            #     fig.tight_layout()
+            #     fig.savefig(f'psnr_plot_{psnr:.2f}.png')
+            #     raise ValueError()
             if self.cfg.DATASET.REJECTION_SAMPLING.ENABLED and random.random() <= self.cfg.DATASET.REJECTION_SAMPLING.EPSILON:
-                while calc_psnr(torch.as_tensor(resize(lr_patch, hr_patch.shape[:2])).permute(2,0,1), torch.as_tensor(hr_patch).permute(2,0,1), scale, self.cfg.DATASET.RGB_RANGE) > self.cfg.DATASET.REJECTION_SAMPLING.MAX_PSNR:
+                while calc_psnr(torch.as_tensor(resize(lr_patch, hr_patch.shape[:2], order=3)).permute(2,0,1), torch.as_tensor(hr_patch).permute(2,0,1), scale, self.cfg.DATASET.RGB_RANGE) > self.cfg.DATASET.REJECTION_SAMPLING.MAX_PSNR:
                     lr_patch, hr_patch = common.get_patch(
                         lr, hr,
                         patch_size=self.cfg.DATASET.OUT_PATCH_SIZE,
@@ -225,6 +246,21 @@ class SRData(data.Dataset):
             ih, iw = lr.shape[:2]
             hr_patch = hr[0:ih * scale, 0:iw * scale]
             lr_patch = lr
+            
+            psnr = calc_psnr(torch.as_tensor(resize(lr_patch, hr_patch.shape[:2], order=3)).permute(2,0,1)[None], 
+                    torch.as_tensor(hr_patch).permute(2,0,1)[None], 
+                    scale, 
+                    self.cfg.DATASET.RGB_RANGE
+            )
+            print(psnr)
+            self.psnrs.append(psnr)
+            with open('psnr_test_file.txt', 'a') as f:
+                print(psnr, file=f)
+            if len(self.psnrs) >= 200:
+                with open('psnr_test_file.txt', 'a') as f:
+                    for psnr in self.psnrs:
+                        print(psnr, file=f)
+                raise ValueError()
 
         return lr_patch, hr_patch
 

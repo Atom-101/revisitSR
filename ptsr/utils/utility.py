@@ -195,13 +195,16 @@ def calc_psnr(sr, hr, scale, rgb_range, dataset=None):
         return 0
 
     diff = (sr - hr) / rgb_range
-    if diff.size(1) > 1:
-        gray_coeffs = [65.738, 129.057, 25.064]
-        convert = diff.new_tensor(gray_coeffs).view(1, 3, 1, 1) / 256
-        diff = diff.mul(convert).sum(dim=1)
+    # if diff.size(1) > 1:
+    #     gray_coeffs = [65.738, 129.057, 25.064]
+    #     convert = diff.new_tensor(gray_coeffs).view(1, 3, 1, 1) / 256
+    #     diff = diff.mul(convert).sum(dim=1)
 
     shave = scale
     valid = diff[..., shave:-shave, shave:-shave]
     mse = valid.pow(2).mean()
+    
+    if mse == 0:  # PSNR have no importance.
+        return 100
 
     return -10 * math.log10(mse)
